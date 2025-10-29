@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector QR Simple</title>
+    <title>Lector QR - Compatible con Bookmarklet</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
@@ -95,7 +95,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* transform: scaleX(-1); */ /* Modo espejo desactivado */
         }
         
         .qr-scanner-frame {
@@ -148,10 +147,6 @@
             text-align: center;
             font-size: 0.9rem;
             z-index: 10;
-        }
-        
-        #canvas {
-            display: none;
         }
         
         .controls {
@@ -243,6 +238,30 @@
             to { transform: rotate(360deg); }
         }
         
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .data-table th {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
         .scan-info {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
@@ -296,6 +315,49 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        
+        .success-message {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(100, 255, 100, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .order-details {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #ffeb3b;
+        }
+
+        .detail-value {
+            text-align: right;
+        }
+
+        .raw-data {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
 
         @media (max-width: 768px) {
             .app-container {
@@ -326,12 +388,12 @@
 <body>
     <div class="container">
         <header>
-            <h1>Lector QR Simple</h1>
-            <p class="subtitle">Escanea códigos QR en tiempo real y muestra el texto crudo</p>
+            <h1>Lector QR - Compatible con Bookmarklet</h1>
+            <p class="subtitle">Especialmente diseñado para leer QR generados por tu bookmarklet</p>
         </header>
         
         <div class="android-warning">
-            <p><strong>🚀 Escaneo Automático:</strong> Solo apunta al código QR y los datos se extraerán automáticamente</p>
+            <p><strong>🔗 Compatibilidad Total:</strong> Diseñado específicamente para QR generados con: <code>javascript:(function(){...})()</code></p>
         </div>
         
         <div class="app-container">
@@ -364,65 +426,97 @@
             </div>
             
             <div class="card">
-                <h2>Datos Leídos del QR</h2>
+                <h2>Datos Extraídos del QR</h2>
                 <div class="result-container">
-                    <div class="result-title">Contenido del QR:</div>
+                    <div class="result-title">Información de la Orden:</div>
                     <div id="result">
                         <span id="status-message">Activa el escáner para comenzar</span>
                     </div>
                 </div>
                 
+                <div class="order-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Número de Orden:</span>
+                        <span class="detail-value" id="order-number">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Tipo de Pago:</span>
+                        <span class="detail-value" id="payment-type">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Total:</span>
+                        <span class="detail-value" id="total-field">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Fecha de Escaneo:</span>
+                        <span class="detail-value" id="scan-date">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Estado:</span>
+                        <span class="detail-value" id="status-field">-</span>
+                    </div>
                 </div>
+
+                <div class="scan-info">
+                    <strong>Datos Crudos del QR:</strong>
+                    <div class="raw-data" id="raw-data">
+                        Esperando datos...
+                    </div>
+                </div>
+                
+                <div class="success-message" id="success-message" style="display: none;">
+                    ✅ <strong>¡QR procesado exitosamente!</strong> Los datos del bookmarklet han sido importados.
+                </div>
+            </div>
         </div>
         
         <div class="card instructions">
             <h2>Instrucciones de uso:</h2>
             <ol>
                 <li>Haz clic en <strong>"Activar Escáner"</strong> y permite el acceso a la cámara</li>
-                <li>Apunta la cámara al <strong>código QR</strong></li>
-                <li>El sistema escaneará <strong>automáticamente</strong> sin necesidad de tomar foto</li>
-                <li>El contenido crudo del QR se mostrará <strong>en tiempo real</strong></li>
-                <li>Usa <strong>"Detener Escáner"</strong> cuando hayas terminado</li>
+                <li>Apunta la cámara al <strong>código QR generado por tu bookmarklet</strong></li>
+                <li>El sistema detectará automáticamente el formato: <code>Orden: [número]\nPago: [tipo]\nTotal: [monto]</code></li>
+                <li>Los datos se extraerán y mostrarán <strong>instantáneamente</strong></li>
+                <li>No es necesario tomar fotos ni hacer clic en botones adicionales</li>
             </ol>
+            
+            <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                <strong>Formato compatible con tu bookmarklet:</strong>
+                <br><code>Orden: OC-2024-001\nPago: Tarjeta\nTotal: $150.75</code>
+            </div>
         </div>
         
         <footer>
-            <p>Lector QR Simple &copy; 2023 - Escaneo automático en tiempo real</p>
+            <p>Lector QR Compatible &copy; 2024 - Especialmente diseñado para tu bookmarklet</p>
         </footer>
     </div>
 
     <script>
         // Elementos del DOM
         const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
         const startCameraBtn = document.getElementById('start-camera-btn');
         const stopCameraBtn = document.getElementById('stop-camera-btn');
         const resultDiv = document.getElementById('result');
         const statusMessage = document.getElementById('status-message');
         const qrFrame = document.getElementById('qr-frame');
         const scanStatus = document.getElementById('scan-status');
-        
-        // --- Variables de la tabla eliminadas ---
-        // const orderNumberField = ... (eliminado)
-        // const dateField = ... (eliminado)
-        // const totalField = ... (eliminado)
-        // const clientField = ... (eliminado)
-        // const statusField = ... (eliminado)
-        // const lastUpdateField = ... (eliminado)
-        // const successMessage = ... (eliminado)
-
+        const orderNumberField = document.getElementById('order-number');
+        const paymentTypeField = document.getElementById('payment-type');
+        const totalField = document.getElementById('total-field');
+        const scanDateField = document.getElementById('scan-date');
+        const statusField = document.getElementById('status-field');
+        const rawDataField = document.getElementById('raw-data');
         const codesDetectedSpan = document.getElementById('codes-detected');
         const lastScanSpan = document.getElementById('last-scan');
         const scanStateSpan = document.getElementById('scan-state');
         const activeTimeSpan = document.getElementById('active-time');
+        const successMessage = document.getElementById('success-message');
         
         // Variables de estado
         let stream = null;
-        let scanningInterval = null;
         let codesDetected = 0;
         let scanStartTime = 0;
-        let lastScanTime = 0;
-        
+
         // Inicializar el escáner
         startCameraBtn.addEventListener('click', async () => {
             await initializeQRScanner();
@@ -470,7 +564,7 @@
                     scanStartTime = Date.now();
                     updateActiveTime();
                     
-                    statusMessage.textContent = 'Escáner activo. Apunta al código QR...';
+                    statusMessage.textContent = 'Escáner activo. Apunta al código QR generado por el bookmarklet...';
                 };
                 
             } catch (error) {
@@ -513,15 +607,8 @@
             scanFrame();
         }
         
-        // Procesar código QR detectado
+        // Procesar código QR detectado - COMPATIBLE CON BOOKMARKLET
         function processQRCode(qrData) {
-            // Evitar escanear el mismo código repetidamente muy rápido
-            const now = Date.now();
-            if (now - lastScanTime < 2000) { // 2 segundos de espera
-                return;
-            }
-            
-            lastScanTime = now;
             codesDetected++;
             
             // Actualizar estadísticas
@@ -533,36 +620,94 @@
             qrFrame.classList.add('success');
             scanStatus.innerHTML = '✅ QR Detectado';
             
-            // ----------------------------------------------------
-            // MODIFICACIÓN PRINCIPAL: Mostrar datos crudos
-            // ----------------------------------------------------
-            console.log("Datos QR crudos:", qrData);
-            resultDiv.innerHTML = `<strong>${qrData}</strong>`;
+            // Mostrar datos crudos
+            rawDataField.textContent = qrData;
             
-            // Ya no se llama a parseQRData() ni updateUIWithOrderData()
+            // Procesar los datos del QR según el formato del bookmarklet
+            parseBookmarkletData(qrData);
             
             // Restaurar estado de escaneo después de 2 segundos
             setTimeout(() => {
                 qrFrame.classList.remove('success');
                 qrFrame.classList.add('scanning');
                 scanStatus.innerHTML = '<span class="loading"></span> Escaneando...';
-            }, 2000); // Coincide con el tiempo de espera
+            }, 2000);
         }
         
-        // --- FUNCIÓN parseQRData() ELIMINADA ---
+        // Parsear datos específicos del formato del bookmarklet
+        function parseBookmarkletData(qrData) {
+            console.log("Datos QR del bookmarklet:", qrData);
+            
+            // Formato esperado del bookmarklet:
+            // "Orden: OC-2024-001\nPago: Tarjeta de Crédito\nTotal: $150.75"
+            const lines = qrData.split('\n');
+            
+            const orderData = {
+                orderNumber: extractValue(lines[0], 'Orden:'),
+                paymentType: extractValue(lines[1], 'Pago:'),
+                total: extractValue(lines[2], 'Total:'),
+                scanDate: new Date().toLocaleString(),
+                status: 'Procesado'
+            };
+            
+            // Actualizar la interfaz con los datos
+            updateUIWithOrderData(orderData);
+        }
         
-        // --- FUNCIÓN updateUIWithOrderData() ELIMINADA ---
+        // Función auxiliar para extraer valores
+        function extractValue(line, prefix) {
+            if (!line) return 'No disponible';
+            return line.replace(prefix, '').trim();
+        }
+        
+        // Actualizar UI con datos de la orden
+        function updateUIWithOrderData(orderData) {
+            // Actualizar campos principales
+            orderNumberField.textContent = orderData.orderNumber;
+            paymentTypeField.textContent = orderData.paymentType;
+            totalField.textContent = orderData.total;
+            scanDateField.textContent = orderData.scanDate;
+            statusField.textContent = orderData.status;
+            
+            // Actualizar resultado principal
+            resultDiv.innerHTML = `<strong>${orderData.orderNumber}</strong>`;
+            statusMessage.textContent = `✅ Orden ${orderData.orderNumber} procesada`;
+            
+            // Mostrar mensaje de éxito
+            successMessage.style.display = 'block';
+            
+            // Ocultar mensaje después de 5 segundos
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 5000);
+            
+            console.log("Datos de orden procesados:", orderData);
+            
+            // Guardar en localStorage
+            saveOrderToStorage(orderData);
+        }
+        
+        // Guardar orden en localStorage
+        function saveOrderToStorage(orderData) {
+            try {
+                const orders = JSON.parse(localStorage.getItem('bookmarkletOrders') || '[]');
+                orders.push({
+                    ...orderData,
+                    rawData: rawDataField.textContent,
+                    timestamp: new Date().toISOString()
+                });
+                localStorage.setItem('bookmarkletOrders', JSON.stringify(orders));
+                console.log('Orden guardada en localStorage');
+            } catch (error) {
+                console.error('Error guardando orden:', error);
+            }
+        }
         
         // Detener escáner
         function stopQRScanner() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
-            }
-            
-            if (scanningInterval) {
-                clearInterval(scanningInterval);
-                scanningInterval = null;
             }
             
             // Resetear UI
@@ -573,7 +718,6 @@
             qrFrame.classList.remove('scanning', 'success');
             scanStatus.textContent = 'Escáner detenido';
             scanStateSpan.textContent = 'Inactivo';
-            scanStartTime = 0; // Detener contador de tiempo
             
             statusMessage.textContent = 'Escáner detenido. Haz clic en "Activar Escáner" para reiniciar.';
         }
@@ -593,10 +737,28 @@
             startCameraBtn.textContent = "🎥 Activar Escáner";
         }
         
-        // --- FUNCIÓN DE PRUEBA generateSampleQRData() ELIMINADA ---
-        // --- LISTENER DE PRUEBA 't' ELIMINADO ---
+        // Generar datos de ejemplo compatibles con el bookmarklet
+        function generateSampleBookmarkletData() {
+            const samples = [
+                "Orden: OC-2024-001\nPago: Tarjeta de Crédito\nTotal: $150.75",
+                "Orden: OC-2024-002\nPago: Transferencia\nTotal: $299.99",
+                "Orden: OC-2024-003\nPago: Efectivo\nTotal: $450.50",
+                "Orden: OC-2024-004\nPago: PayPal\nTotal: $175.25",
+                "Orden: OC-2024-005\nPago: Débito\nTotal: $89.99"
+            ];
+            return samples[Math.floor(Math.random() * samples.length)];
+        }
         
-        console.log("Lector QR cargado.");
+        // Simular detección de QR para pruebas
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 't') { // Presiona 't' para simular QR del bookmarklet
+                processQRCode(generateSampleBookmarkletData());
+            }
+        });
+        
+        console.log("Lector QR cargado. Especialmente diseñado para bookmarklet con formato:");
+        console.log("Orden: OC-2024-001\nPago: Tarjeta\nTotal: $150.75");
+        console.log("Presiona 't' para simular detección de código QR.");
         
         // Limpiar al salir
         window.addEventListener('beforeunload', () => {
