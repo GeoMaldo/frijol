@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector de Números de Orden - Auto Enfoque</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <title>Lector QR de Números de Orden</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
             margin: 0;
@@ -98,7 +98,7 @@
             transform: scaleX(-1);
         }
         
-        .focus-frame {
+        .qr-scanner-frame {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -113,78 +113,45 @@
             transition: all 0.3s ease;
         }
         
-        .focus-frame.blurry {
-            border-color: #ff4444;
-            box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
-            animation: pulse 2s infinite;
-        }
-        
-        .focus-frame.good {
-            border-color: #00ff00;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-        }
-        
-        .focus-frame.excellent {
+        .qr-scanner-frame.scanning {
             border-color: #00ffff;
             box-shadow: 0 0 25px rgba(0, 255, 255, 0.7);
-            animation: glow 1.5s infinite;
+            animation: scanPulse 2s infinite;
         }
         
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
+        .qr-scanner-frame.success {
+            border-color: #00ff00;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+            animation: successGlow 1s infinite;
         }
         
-        @keyframes glow {
-            0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
-            50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.8); }
-            100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+        @keyframes scanPulse {
+            0% { border-color: #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+            50% { border-color: #0088ff; box-shadow: 0 0 30px rgba(0, 136, 255, 0.7); }
+            100% { border-color: #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
         }
         
-        .quality-indicator {
+        @keyframes successGlow {
+            0% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 0, 0.9); }
+            100% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.6); }
+        }
+        
+        .scan-status {
             position: absolute;
             top: 10px;
+            left: 10px;
             right: 10px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 8px 12px;
+            padding: 10px;
             border-radius: 20px;
+            text-align: center;
             font-size: 0.9rem;
             z-index: 10;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
-        
-        .quality-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .quality-dot.poor { background: #ff4444; }
-        .quality-dot.fair { background: #ffaa00; }
-        .quality-dot.good { background: #00ff00; }
-        .quality-dot.excellent { background: #00ffff; }
         
         #canvas {
             display: none;
-        }
-        
-        .captured-image-container {
-            width: 100%;
-            max-height: 300px;
-            overflow: hidden;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        
-        #captured-image {
-            width: 100%;
-            height: auto;
-            display: block;
         }
         
         .controls {
@@ -232,16 +199,8 @@
             padding: 18px 20px;
         }
         
-        #capture-btn {
+        #stop-camera-btn {
             background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
-        }
-        
-        #auto-capture-btn {
-            background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
-        }
-        
-        #process-btn {
-            background: linear-gradient(135deg, #4A00E0 0%, #8E2DE2 100%);
         }
         
         .result-container {
@@ -284,7 +243,31 @@
             to { transform: rotate(360deg); }
         }
         
-        .calibration-info {
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .data-table th {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .scan-info {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 15px;
@@ -292,7 +275,7 @@
             font-size: 0.9rem;
         }
         
-        .calibration-stats {
+        .scan-stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
@@ -320,30 +303,6 @@
         
         .instructions li {
             margin-bottom: 8px;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .data-table th, .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .data-table th {
-            background: rgba(255, 255, 255, 0.2);
-            font-weight: 600;
-        }
-        
-        .data-table tr:last-child td {
-            border-bottom: none;
         }
         
         footer {
@@ -389,7 +348,7 @@
                 font-size: 1.1rem;
             }
             
-            .focus-frame {
+            .qr-scanner-frame {
                 width: 80%;
                 height: 50%;
             }
@@ -399,62 +358,54 @@
 <body>
     <div class="container">
         <header>
-            <h1>Lector de Números de Orden</h1>
-            <p class="subtitle">Con Auto-Enfoque y Calibración Inteligente</p>
+            <h1>Lector QR de Números de Orden</h1>
+            <p class="subtitle">Escanea códigos QR en tiempo real - Sin necesidad de fotos</p>
         </header>
         
         <div class="android-warning">
-            <p><strong>🤖 Modo Auto-Enfoque Activado:</strong> La app detectará automáticamente cuándo la imagen está enfocada</p>
+            <p><strong>🚀 Escaneo Automático:</strong> Solo apunta al código QR y los datos se extraerán automáticamente</p>
         </div>
         
         <div class="app-container">
             <div class="card">
-                <h2>Cámara Inteligente</h2>
+                <h2>Escáner QR</h2>
                 <div class="camera-container">
                     <video id="video" autoplay playsinline></video>
-                    <div class="focus-frame" id="focus-frame">
-                        <div class="quality-indicator" id="quality-indicator">
-                            <span class="quality-dot poor"></span>
-                            <span id="quality-text">Calibrando...</span>
+                    <div class="qr-scanner-frame" id="qr-frame">
+                        <div class="scan-status" id="scan-status">
+                            <span class="loading"></span> Escaneando...
                         </div>
                     </div>
                     <canvas id="canvas"></canvas>
                 </div>
                 
-                <div class="captured-image-container">
-                    <img id="captured-image" alt="Imagen capturada">
-                </div>
-                
                 <div class="controls">
-                    <button id="start-camera-btn">🎥 Activar Cámara</button>
-                    <button id="capture-btn" disabled>📸 Capturar Manual</button>
-                    <button id="auto-capture-btn" disabled>🤖 Auto-Captura</button>
-                    <button id="process-btn" disabled>🔍 Procesar Imagen</button>
-                    <button id="reset-btn" disabled>🔄 Reiniciar</button>
+                    <button id="start-camera-btn">🎥 Activar Escáner</button>
+                    <button id="stop-camera-btn" disabled>⏹️ Detener Escáner</button>
                 </div>
                 
-                <div class="calibration-info">
-                    <strong>Calibración Automática:</strong>
-                    <div class="calibration-stats">
-                        <div class="stat-item">Calidad: <span id="quality-score">0%</span></div>
-                        <div class="stat-item">Contraste: <span id="contrast-score">0%</span></div>
-                        <div class="stat-item">Nitidez: <span id="sharpness-score">0%</span></div>
-                        <div class="stat-item">Estabilidad: <span id="stability-score">0%</span></div>
+                <div class="scan-info">
+                    <strong>Estadísticas de Escaneo:</strong>
+                    <div class="scan-stats">
+                        <div class="stat-item">Códigos detectados: <span id="codes-detected">0</span></div>
+                        <div class="stat-item">Último escaneo: <span id="last-scan">-</span></div>
+                        <div class="stat-item">Estado: <span id="scan-state">Inactivo</span></div>
+                        <div class="stat-item">Tiempo activo: <span id="active-time">0s</span></div>
                     </div>
                 </div>
             </div>
             
             <div class="card">
-                <h2>Resultados</h2>
+                <h2>Datos Extraídos</h2>
                 <div class="result-container">
-                    <div class="result-title">Número de Orden Detectado:</div>
+                    <div class="result-title">Número de Orden:</div>
                     <div id="result">
-                        <span id="status-message">Haz clic en "Activar Cámara" para comenzar</span>
+                        <span id="status-message">Activa el escáner para comenzar</span>
                     </div>
                 </div>
                 
                 <div class="extracted-data">
-                    <div class="result-title" style="margin-top: 20px;">Datos Extraídos:</div>
+                    <div class="result-title" style="margin-top: 20px;">Información Completa:</div>
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -475,8 +426,24 @@
                                 <td>Total</td>
                                 <td id="total-field">-</td>
                             </tr>
+                            <tr>
+                                <td>Cliente</td>
+                                <td id="client-field">-</td>
+                            </tr>
+                            <tr>
+                                <td>Estado</td>
+                                <td id="status-field">-</td>
+                            </tr>
+                            <tr>
+                                <td>Última Actualización</td>
+                                <td id="last-update">-</td>
+                            </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <div class="success-message" id="success-message" style="display: none;">
+                    ✅ <strong>¡Datos extraídos exitosamente!</strong> Los datos del código QR han sido procesados.
                 </div>
             </div>
         </div>
@@ -484,16 +451,17 @@
         <div class="card instructions">
             <h2>Instrucciones de uso:</h2>
             <ol>
-                <li>Activa la cámara y <strong>permite los permisos</strong></li>
-                <li><strong>Enfoca automáticamente:</strong> Mueve la cámara hasta que el marco se ponga verde/azul</li>
-                <li>Usa <strong>Auto-Captura</strong> para que la app tome la foto automáticamente cuando esté enfocada</li>
-                <li>O usa <strong>Captura Manual</strong> cuando veas que el marco indica buena calidad</li>
-                <li>Procesa la imagen y revisa los resultados</li>
+                <li>Haz clic en <strong>"Activar Escáner"</strong> y permite el acceso a la cámara</li>
+                <li>Apunta la cámara al <strong>código QR</strong> del número de orden</li>
+                <li>El sistema escaneará <strong>automáticamente</strong> sin necesidad de tomar foto</li>
+                <li>Los datos se extraerán y mostrarán <strong>en tiempo real</strong></li>
+                <li>Usa <strong>"Detener Escáner"</strong> cuando hayas terminado</li>
+                <li>¡No necesitas tomar fotos ni hacer clic en botones para procesar!</li>
             </ol>
         </div>
         
         <footer>
-            <p>Lector de Números de Orden &copy; 2023 - Con tecnología de Auto-Enfoque Inteligente</p>
+            <p>Lector QR de Números de Orden &copy; 2023 - Escaneo automático en tiempo real</p>
         </footer>
     </div>
 
@@ -501,50 +469,46 @@
         // Elementos del DOM
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const capturedImage = document.getElementById('captured-image');
-        const capturedImageContainer = document.querySelector('.captured-image-container');
         const startCameraBtn = document.getElementById('start-camera-btn');
-        const captureBtn = document.getElementById('capture-btn');
-        const autoCaptureBtn = document.getElementById('auto-capture-btn');
-        const processBtn = document.getElementById('process-btn');
-        const resetBtn = document.getElementById('reset-btn');
+        const stopCameraBtn = document.getElementById('stop-camera-btn');
         const resultDiv = document.getElementById('result');
         const statusMessage = document.getElementById('status-message');
-        const focusFrame = document.getElementById('focus-frame');
-        const qualityIndicator = document.getElementById('quality-indicator');
-        const qualityText = document.getElementById('quality-text');
-        const qualityScore = document.getElementById('quality-score');
-        const contrastScore = document.getElementById('contrast-score');
-        const sharpnessScore = document.getElementById('sharpness-score');
-        const stabilityScore = document.getElementById('stability-score');
+        const qrFrame = document.getElementById('qr-frame');
+        const scanStatus = document.getElementById('scan-status');
         const orderNumberField = document.getElementById('order-number');
         const dateField = document.getElementById('date-field');
         const totalField = document.getElementById('total-field');
+        const clientField = document.getElementById('client-field');
+        const statusField = document.getElementById('status-field');
+        const lastUpdateField = document.getElementById('last-update');
+        const codesDetectedSpan = document.getElementById('codes-detected');
+        const lastScanSpan = document.getElementById('last-scan');
+        const scanStateSpan = document.getElementById('scan-state');
+        const activeTimeSpan = document.getElementById('active-time');
+        const successMessage = document.getElementById('success-message');
         
         // Variables de estado
         let stream = null;
-        let capturedImageData = null;
-        let autoCaptureInterval = null;
-        let isAutoCaptureEnabled = false;
-        let qualityHistory = [];
-        let lastCaptureTime = 0;
+        let scanningInterval = null;
+        let codesDetected = 0;
+        let scanStartTime = 0;
+        let lastScanTime = 0;
         
-        // Constantes de calibración
-        const QUALITY_THRESHOLD = 0.7;
-        const STABILITY_THRESHOLD = 0.8;
-        const MIN_TIME_BETWEEN_CAPTURES = 2000; // 2 segundos
-        
-        // Inicializar la cámara
+        // Inicializar el escáner
         startCameraBtn.addEventListener('click', async () => {
-            await initializeCamera();
+            await initializeQRScanner();
         });
         
-        // Función para inicializar la cámara
-        async function initializeCamera() {
+        // Detener el escáner
+        stopCameraBtn.addEventListener('click', () => {
+            stopQRScanner();
+        });
+        
+        // Función para inicializar el escáner QR
+        async function initializeQRScanner() {
             try {
-                statusMessage.innerHTML = '<span class="loading"></span> Activando cámara con auto-enfoque...';
+                statusMessage.innerHTML = '<span class="loading"></span> Iniciando escáner QR...';
                 startCameraBtn.disabled = true;
-                startCameraBtn.textContent = "Activando...";
                 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -554,329 +518,240 @@
                     video: {
                         facingMode: 'environment',
                         width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        frameRate: { ideal: 30 }
+                        height: { ideal: 720 }
                     },
                     audio: false
                 };
                 
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia(constraints);
-                } catch (error) {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: false
-                    });
-                }
-                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
                 
                 video.onloadeddata = () => {
                     video.play();
                     
-                    captureBtn.disabled = false;
-                    autoCaptureBtn.disabled = false;
-                    startCameraBtn.textContent = "✅ Cámara Activada";
-                    startCameraBtn.style.background = "linear-gradient(135deg, #00b09b 0%, #96c93d 100%)";
+                    stopCameraBtn.disabled = false;
+                    startCameraBtn.textContent = "✅ Escáner Activado";
                     
-                    statusMessage.textContent = '✅ Cámara lista. El sistema de auto-enfoque está activo.';
+                    // Iniciar el escaneo continuo
+                    startContinuousScanning();
                     
-                    // Iniciar análisis de calidad en tiempo real
-                    startQualityAnalysis();
-                };
-                
-                video.onerror = (error) => {
-                    console.error("Error en video:", error);
-                    resetCameraButton();
+                    // Actualizar UI
+                    scanStateSpan.textContent = 'Escaneando';
+                    qrFrame.classList.add('scanning');
+                    scanStartTime = Date.now();
+                    updateActiveTime();
+                    
+                    statusMessage.textContent = 'Escáner activo. Apunta al código QR...';
                 };
                 
             } catch (error) {
                 console.error('Error al acceder a la cámara:', error);
                 statusMessage.textContent = '❌ Error: No se pudo acceder a la cámara.';
-                resetCameraButton();
+                resetScannerButton();
             }
         }
         
-        // Análisis de calidad en tiempo real
-        function startQualityAnalysis() {
-            const analysisCanvas = document.createElement('canvas');
-            const analysisContext = analysisCanvas.getContext('2d');
+        // Escaneo continuo de QR
+        function startContinuousScanning() {
+            const canvasElement = document.createElement('canvas');
+            const canvasContext = canvasElement.getContext('2d');
             
-            function analyzeFrame() {
+            function scanFrame() {
                 if (!stream || video.paused || video.ended) return;
                 
-                analysisCanvas.width = video.videoWidth;
-                analysisCanvas.height = video.videoHeight;
-                analysisContext.drawImage(video, 0, 0, analysisCanvas.width, analysisCanvas.height);
+                canvasElement.width = video.videoWidth;
+                canvasElement.height = video.videoHeight;
+                canvasContext.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
                 
-                const imageData = analysisContext.getImageData(0, 0, analysisCanvas.width, analysisCanvas.height);
-                const quality = calculateImageQuality(imageData);
+                const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
                 
-                updateQualityDisplay(quality);
-                
-                // Auto-captura si está habilitada y la calidad es buena
-                if (isAutoCaptureEnabled && 
-                    quality.overall >= QUALITY_THRESHOLD && 
-                    quality.stability >= STABILITY_THRESHOLD &&
-                    (Date.now() - lastCaptureTime) > MIN_TIME_BETWEEN_CAPTURES) {
-                    autoCaptureImage();
-                }
-                
-                requestAnimationFrame(analyzeFrame);
-            }
-            
-            analyzeFrame();
-        }
-        
-        // Calcular calidad de imagen
-        function calculateImageQuality(imageData) {
-            const data = imageData.data;
-            const width = imageData.width;
-            const height = imageData.height;
-            
-            // Calcular contraste
-            let contrast = calculateContrast(data);
-            
-            // Calcular nitidez (gradientes)
-            let sharpness = calculateSharpness(data, width, height);
-            
-            // Calcular estabilidad (comparar con frames anteriores)
-            const overallQuality = (contrast + sharpness) / 2;
-            qualityHistory.push(overallQuality);
-            if (qualityHistory.length > 10) qualityHistory.shift();
-            
-            const stability = calculateStability(qualityHistory);
-            
-            return {
-                contrast: contrast,
-                sharpness: sharpness,
-                stability: stability,
-                overall: overallQuality
-            };
-        }
-        
-        function calculateContrast(data) {
-            let sum = 0, sumSquares = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
-                sum += brightness;
-                sumSquares += brightness * brightness;
-            }
-            const mean = sum / (data.length / 4);
-            const variance = (sumSquares / (data.length / 4)) - (mean * mean);
-            return Math.min(variance / 10000, 1); // Normalizar
-        }
-        
-        function calculateSharpness(data, width, height) {
-            let gradientSum = 0;
-            const step = 4;
-            
-            for (let y = step; y < height - step; y += step) {
-                for (let x = step; x < width - step; x += step) {
-                    const idx = (y * width + x) * 4;
-                    const brightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+                try {
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
                     
-                    // Gradiente horizontal
-                    const idxRight = (y * width + (x + step)) * 4;
-                    const brightnessRight = (data[idxRight] + data[idxRight+1] + data[idxRight+2]) / 3;
-                    const gradH = Math.abs(brightness - brightnessRight);
-                    
-                    // Gradiente vertical
-                    const idxDown = ((y + step) * width + x) * 4;
-                    const brightnessDown = (data[idxDown] + data[idxDown+1] + data[idxDown+2]) / 3;
-                    const gradV = Math.abs(brightness - brightnessDown);
-                    
-                    gradientSum += (gradH + gradV) / 2;
-                }
-            }
-            
-            const totalSamples = ((height - 2*step) / step) * ((width - 2*step) / step);
-            return Math.min(gradientSum / totalSamples / 50, 1); // Normalizar
-        }
-        
-        function calculateStability(history) {
-            if (history.length < 2) return 1;
-            
-            let sum = 0;
-            for (let i = 1; i < history.length; i++) {
-                sum += Math.abs(history[i] - history[i-1]);
-            }
-            const avgChange = sum / (history.length - 1);
-            return Math.max(0, 1 - avgChange * 10);
-        }
-        
-        // Actualizar display de calidad
-        function updateQualityDisplay(quality) {
-            // Actualizar scores
-            qualityScore.textContent = Math.round(quality.overall * 100) + '%';
-            contrastScore.textContent = Math.round(quality.contrast * 100) + '%';
-            sharpnessScore.textContent = Math.round(quality.sharpness * 100) + '%';
-            stabilityScore.textContent = Math.round(quality.stability * 100) + '%';
-            
-            // Actualizar indicador visual
-            let qualityLevel, qualityClass, frameClass;
-            
-            if (quality.overall < 0.3) {
-                qualityLevel = "Mala";
-                qualityClass = "poor";
-                frameClass = "blurry";
-            } else if (quality.overall < 0.6) {
-                qualityLevel = "Regular";
-                qualityClass = "fair";
-                frameClass = "blurry";
-            } else if (quality.overall < 0.8) {
-                qualityLevel = "Buena";
-                qualityClass = "good";
-                frameClass = "good";
-            } else {
-                qualityLevel = "Excelente";
-                qualityClass = "excellent";
-                frameClass = "excellent";
-            }
-            
-            // Actualizar UI
-            const qualityDot = qualityIndicator.querySelector('.quality-dot');
-            qualityDot.className = 'quality-dot ' + qualityClass;
-            qualityText.textContent = `Calidad: ${qualityLevel}`;
-            focusFrame.className = 'focus-frame ' + frameClass;
-        }
-        
-        // Auto-captura
-        autoCaptureBtn.addEventListener('click', () => {
-            isAutoCaptureEnabled = !isAutoCaptureEnabled;
-            
-            if (isAutoCaptureEnabled) {
-                autoCaptureBtn.innerHTML = '⏹️ Detener Auto';
-                autoCaptureBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #ff0000 100%)';
-                statusMessage.innerHTML = '<span class="loading"></span> Auto-captura activada. La app tomará la foto automáticamente cuando detecte buena calidad...';
-            } else {
-                autoCaptureBtn.innerHTML = '🤖 Auto-Captura';
-                autoCaptureBtn.style.background = 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)';
-                statusMessage.textContent = 'Auto-captura desactivada. Usa captura manual cuando estés listo.';
-            }
-        });
-        
-        function autoCaptureImage() {
-            lastCaptureTime = Date.now();
-            captureImage();
-            
-            // Mostrar feedback
-            statusMessage.innerHTML = '✅ <strong>Auto-captura:</strong> Imagen capturada automáticamente por buena calidad';
-            
-            // Desactivar auto-captura después de una captura exitosa
-            setTimeout(() => {
-                isAutoCaptureEnabled = false;
-                autoCaptureBtn.innerHTML = '🤖 Auto-Captura';
-                autoCaptureBtn.style.background = 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)';
-            }, 3000);
-        }
-        
-        // Captura manual
-        captureBtn.addEventListener('click', () => {
-            captureImage();
-        });
-        
-        function captureImage() {
-            if (!stream) return;
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            capturedImageData = canvas.toDataURL('image/png');
-            capturedImage.src = capturedImageData;
-            capturedImageContainer.style.display = 'block';
-            
-            processBtn.disabled = false;
-            resetBtn.disabled = false;
-            
-            if (!isAutoCaptureEnabled) {
-                statusMessage.textContent = '✅ Imagen capturada. Haz clic en "Procesar Imagen" para extraer el número.';
-            }
-        }
-        
-        // Procesar imagen con OCR
-        processBtn.addEventListener('click', async () => {
-            if (!capturedImageData) return;
-            
-            statusMessage.innerHTML = '<span class="loading"></span> Procesando imagen con OCR...';
-            processBtn.disabled = true;
-            
-            try {
-                const { data: { text } } = await Tesseract.recognize(
-                    capturedImageData,
-                    'eng',
-                    { 
-                        logger: m => console.log(m) 
+                    if (code) {
+                        // QR detectado
+                        processQRCode(code.data);
                     }
-                );
-                
-                processExtractedText(text);
-                
-            } catch (error) {
-                console.error('Error en OCR:', error);
-                statusMessage.textContent = '❌ Error al procesar la imagen. Intenta de nuevo con una imagen más clara.';
-                processBtn.disabled = false;
-            }
-        });
-        
-        // Procesar texto extraído
-        function processExtractedText(text) {
-            console.log("Texto extraído por OCR:", text);
-            
-            const orderMatch = text.match(/(orden|order|#|número|num|no\.?)\s*:?\s*([A-Z0-9\-]+)/i);
-            const dateMatch = text.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/);
-            const totalMatch = text.match(/(total|total:)\s*\$?\s*(\d+[.,]\d+)/i);
-            
-            let orderNumber = "No detectado";
-            if (orderMatch && orderMatch[2]) {
-                orderNumber = orderMatch[2];
-            } else {
-                const potentialOrder = text.match(/([A-Z]{2,}\d{4,}|[A-Z]+\-\d+|ORDEN\s*\d+)/i);
-                if (potentialOrder) {
-                    orderNumber = potentialOrder[0];
+                } catch (error) {
+                    console.log("Error en escaneo QR:", error);
                 }
+                
+                requestAnimationFrame(scanFrame);
             }
             
-            let date = "No detectada";
-            if (dateMatch) {
-                date = dateMatch[0];
-            }
-            
-            let total = "No detectado";
-            if (totalMatch && totalMatch[2]) {
-                total = "$" + totalMatch[2];
-            }
-            
-            statusMessage.innerHTML = `<strong>${orderNumber}</strong>`;
-            orderNumberField.textContent = orderNumber;
-            dateField.textContent = date;
-            totalField.textContent = total;
+            scanFrame();
         }
         
-        // Reiniciar
-        resetBtn.addEventListener('click', () => {
-            capturedImageContainer.style.display = 'none';
-            capturedImageData = null;
-            isAutoCaptureEnabled = false;
-            autoCaptureBtn.innerHTML = '🤖 Auto-Captura';
-            autoCaptureBtn.style.background = 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)';
-            statusMessage.textContent = 'Cámara lista. El sistema de auto-enfoque está activo.';
-            orderNumberField.textContent = '-';
-            dateField.textContent = '-';
-            totalField.textContent = '-';
-            processBtn.disabled = true;
-            resetBtn.disabled = true;
+        // Procesar código QR detectado
+        function processQRCode(qrData) {
+            codesDetected++;
+            lastScanTime = Date.now();
+            
+            // Actualizar estadísticas
+            codesDetectedSpan.textContent = codesDetected;
+            lastScanSpan.textContent = new Date().toLocaleTimeString();
+            
+            // Feedback visual
+            qrFrame.classList.remove('scanning');
+            qrFrame.classList.add('success');
+            scanStatus.innerHTML = '✅ QR Detectado';
+            
+            // Procesar los datos del QR
+            parseQRData(qrData);
+            
+            // Restaurar estado de escaneo después de 2 segundos
+            setTimeout(() => {
+                qrFrame.classList.remove('success');
+                qrFrame.classList.add('scanning');
+                scanStatus.innerHTML = '<span class="loading"></span> Escaneando...';
+            }, 2000);
+        }
+        
+        // Parsear datos del QR (simulando diferentes formatos)
+        function parseQRData(qrData) {
+            console.log("Datos QR crudos:", qrData);
+            
+            let orderData = {};
+            
+            // Intentar diferentes formatos de QR
+            try {
+                // Formato JSON
+                if (qrData.startsWith('{')) {
+                    orderData = JSON.parse(qrData);
+                }
+                // Formato URL con parámetros
+                else if (qrData.includes('order=') || qrData.includes('orden=')) {
+                    const urlParams = new URLSearchParams(qrData.split('?')[1]);
+                    orderData = {
+                        orderNumber: urlParams.get('order') || urlParams.get('orden') || urlParams.get('numero'),
+                        date: urlParams.get('date') || urlParams.get('fecha'),
+                        total: urlParams.get('total') || urlParams.get('amount'),
+                        client: urlParams.get('client') || urlParams.get('cliente'),
+                        status: urlParams.get('status') || urlParams.get('estado')
+                    };
+                }
+                // Formato simple: ORDER12345|2024-01-15|150.00
+                else if (qrData.includes('|')) {
+                    const parts = qrData.split('|');
+                    orderData = {
+                        orderNumber: parts[0] || 'N/A',
+                        date: parts[1] || 'N/A',
+                        total: parts[2] || 'N/A',
+                        client: parts[3] || 'N/A',
+                        status: parts[4] || 'Activo'
+                    };
+                }
+                // Si es solo el número de orden
+                else {
+                    orderData = {
+                        orderNumber: qrData,
+                        date: new Date().toLocaleDateString(),
+                        total: 'Por determinar',
+                        client: 'Cliente QR',
+                        status: 'Escaneado'
+                    };
+                }
+            } catch (error) {
+                console.error("Error parseando QR:", error);
+                // Datos por defecto si hay error
+                orderData = {
+                    orderNumber: qrData.substring(0, 20) + '...',
+                    date: new Date().toLocaleDateString(),
+                    total: 'N/A',
+                    client: 'Formato no reconocido',
+                    status: 'Error en parseo'
+                };
+            }
+            
+            // Actualizar la interfaz con los datos
+            updateUIWithOrderData(orderData);
+        }
+        
+        // Actualizar UI con datos de la orden
+        function updateUIWithOrderData(orderData) {
+            // Actualizar campos principales
+            orderNumberField.textContent = orderData.orderNumber || orderData.numeroOrden || 'N/A';
+            dateField.textContent = orderData.date || orderData.fecha || new Date().toLocaleDateString();
+            totalField.textContent = orderData.total ? `$${orderData.total}` : 'Por determinar';
+            clientField.textContent = orderData.client || orderData.cliente || 'No especificado';
+            statusField.textContent = orderData.status || orderData.estado || 'Activo';
+            lastUpdateField.textContent = new Date().toLocaleString();
+            
+            // Actualizar resultado principal
+            resultDiv.innerHTML = `<strong>${orderData.orderNumber || orderData.numeroOrden || 'N/A'}</strong>`;
+            
+            // Mostrar mensaje de éxito
+            successMessage.style.display = 'block';
+            
+            // Ocultar mensaje después de 5 segundos
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 5000);
+            
+            console.log("Datos procesados:", orderData);
+        }
+        
+        // Detener escáner
+        function stopQRScanner() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            if (scanningInterval) {
+                clearInterval(scanningInterval);
+                scanningInterval = null;
+            }
+            
+            // Resetear UI
+            startCameraBtn.disabled = false;
+            startCameraBtn.textContent = "🎥 Activar Escáner";
+            stopCameraBtn.disabled = true;
+            
+            qrFrame.classList.remove('scanning', 'success');
+            scanStatus.textContent = 'Escáner detenido';
+            scanStateSpan.textContent = 'Inactivo';
+            
+            statusMessage.textContent = 'Escáner detenido. Haz clic en "Activar Escáner" para reiniciar.';
+        }
+        
+        // Actualizar tiempo activo
+        function updateActiveTime() {
+            if (scanStartTime > 0) {
+                const activeSeconds = Math.floor((Date.now() - scanStartTime) / 1000);
+                activeTimeSpan.textContent = `${activeSeconds}s`;
+                setTimeout(updateActiveTime, 1000);
+            }
+        }
+        
+        // Resetear botón del escáner
+        function resetScannerButton() {
+            startCameraBtn.disabled = false;
+            startCameraBtn.textContent = "🎥 Activar Escáner";
+        }
+        
+        // Datos de ejemplo para probar
+        function generateSampleQRData() {
+            const samples = [
+                '{"orderNumber":"ORD2024001","date":"2024-01-15","total":"150.75","client":"Juan Pérez","status":"Completado"}',
+                'order=ORD2024002&date=2024-01-16&total=299.99&client=María García&status=En proceso',
+                'ORD2024003|2024-01-17|450.50|Carlos López|Pendiente',
+                'ORD2024004',
+                'https://empresa.com/orders?numero=ORD2024005&fecha=2024-01-18&total=175.25&cliente=Ana Martínez'
+            ];
+            return samples[Math.floor(Math.random() * samples.length)];
+        }
+        
+        // Simular detección de QR para pruebas (quitar en producción)
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 't' && stream) { // Presiona 't' para simular QR
+                processQRCode(generateSampleQRData());
+            }
         });
         
-        // Utilidades
-        function resetCameraButton() {
-            startCameraBtn.disabled = false;
-            startCameraBtn.textContent = "🎥 Activar Cámara";
-            startCameraBtn.style.background = "linear-gradient(135deg, #00b09b 0%, #96c93d 100%)";
-        }
+        console.log("Lector QR cargado. Presiona 't' para simular detección de código QR.");
         
         // Limpiar al salir
         window.addEventListener('beforeunload', () => {
@@ -884,8 +759,6 @@
                 stream.getTracks().forEach(track => track.stop());
             }
         });
-        
-        console.log("Sistema de auto-enfoque cargado. Listo para calibrar.");
     </script>
 </body>
 </html>
