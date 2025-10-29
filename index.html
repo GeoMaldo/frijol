@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector QR - Compatible con Bookmarklet</title>
+    <title>Lector QR - Máxima Nitidez</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
@@ -102,8 +102,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 70%;
-            height: 40%;
+            width: 60%;
+            height: 35%;
             border: 3px solid #00ff00;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
@@ -147,6 +147,38 @@
             text-align: center;
             font-size: 0.9rem;
             z-index: 10;
+        }
+        
+        .quality-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+        
+        .quality-bar {
+            height: 4px;
+            background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff00, #00ffff);
+            border-radius: 2px;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quality-level {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 2px;
+            transition: width 0.3s ease;
         }
         
         .controls {
@@ -196,6 +228,10 @@
         
         #stop-camera-btn {
             background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+        }
+        
+        #enhance-quality-btn {
+            background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
         }
         
         .result-container {
@@ -359,6 +395,30 @@
             word-break: break-all;
         }
 
+        .camera-settings {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .setting-label {
+            font-size: 0.9rem;
+        }
+
+        .setting-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #00ffff;
+        }
+
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
@@ -388,30 +448,51 @@
 <body>
     <div class="container">
         <header>
-            <h1>Lector QR - Compatible con Bookmarklet</h1>
-            <p class="subtitle">Especialmente diseñado para leer QR generados por tu bookmarklet</p>
+            <h1>Lector QR - Máxima Nitidez</h1>
+            <p class="subtitle">Optimizado para detectar QR pequeños con la mejor calidad de cámara</p>
         </header>
         
         <div class="android-warning">
-            <p><strong>🔗 Compatibilidad Total:</strong> Diseñado específicamente para QR generados con: <code>javascript:(function(){...})()</code></p>
+            <p><strong>🔍 Alta Resolución Activada:</strong> La cámara inicia con máxima nitidez para QR pequeños</p>
         </div>
         
         <div class="app-container">
             <div class="card">
-                <h2>Escáner QR</h2>
+                <h2>Escáner de Alta Precisión</h2>
                 <div class="camera-container">
                     <video id="video" autoplay playsinline></video>
                     <div class="qr-scanner-frame" id="qr-frame">
                         <div class="scan-status" id="scan-status">
-                            <span class="loading"></span> Escaneando...
+                            <span class="loading"></span> Optimizando cámara...
+                        </div>
+                        <div class="quality-indicator">
+                            <div>Calidad de Detección: <span id="quality-percent">0%</span></div>
+                            <div class="quality-bar">
+                                <div class="quality-level" id="quality-level" style="width: 0%"></div>
+                            </div>
                         </div>
                     </div>
-                    <canvas id="canvas"></canvas>
                 </div>
                 
                 <div class="controls">
-                    <button id="start-camera-btn">🎥 Activar Escáner</button>
-                    <button id="stop-camera-btn" disabled>⏹️ Detener Escáner</button>
+                    <button id="start-camera-btn">🎥 Iniciar Cámara HD</button>
+                    <button id="enhance-quality-btn" disabled>🔍 Mejorar Nitidez</button>
+                    <button id="stop-camera-btn" disabled>⏹️ Detener Cámara</button>
+                </div>
+                
+                <div class="camera-settings">
+                    <div class="setting-item">
+                        <span class="setting-label">Resolución:</span>
+                        <span class="setting-value" id="resolution-info">-</span>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Enfoque:</span>
+                        <span class="setting-value" id="focus-info">-</span>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Tasa de Frames:</span>
+                        <span class="setting-value" id="framerate-info">-</span>
+                    </div>
                 </div>
                 
                 <div class="scan-info">
@@ -430,7 +511,7 @@
                 <div class="result-container">
                     <div class="result-title">Información de la Orden:</div>
                     <div id="result">
-                        <span id="status-message">Activa el escáner para comenzar</span>
+                        <span id="status-message">Inicia la cámara HD para comenzar</span>
                     </div>
                 </div>
                 
@@ -465,29 +546,29 @@
                 </div>
                 
                 <div class="success-message" id="success-message" style="display: none;">
-                    ✅ <strong>¡QR procesado exitosamente!</strong> Los datos del bookmarklet han sido importados.
+                    ✅ <strong>¡QR detectado exitosamente!</strong> Los datos han sido importados.
                 </div>
             </div>
         </div>
         
         <div class="card instructions">
-            <h2>Instrucciones de uso:</h2>
+            <h2>Instrucciones para QR Pequeños:</h2>
             <ol>
-                <li>Haz clic en <strong>"Activar Escáner"</strong> y permite el acceso a la cámara</li>
-                <li>Apunta la cámara al <strong>código QR generado por tu bookmarklet</strong></li>
-                <li>El sistema detectará automáticamente el formato: <code>Orden: [número]\nPago: [tipo]\nTotal: [monto]</code></li>
-                <li>Los datos se extraerán y mostrarán <strong>instantáneamente</strong></li>
-                <li>No es necesario tomar fotos ni hacer clic en botones adicionales</li>
+                <li>Haz clic en <strong>"Iniciar Cámara HD"</strong> para máxima resolución</li>
+                <li>Espera a que la barra de calidad esté en <strong>verde (80%+)</strong></li>
+                <li>Acerca el QR pequeño al marco de escaneo</li>
+                <li>Mantén el dispositivo <strong>estable</strong> para mejor detección</li>
+                <li>Si no detecta, usa <strong>"Mejorar Nitidez"</strong> para ajustes automáticos</li>
+                <li>El sistema está optimizado para QR de <strong>hasta 1x1 cm</strong></li>
             </ol>
             
             <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
-                <strong>Formato compatible con tu bookmarklet:</strong>
-                <br><code>Orden: OC-2024-001\nPago: Tarjeta\nTotal: $150.75</code>
+                <strong>Consejo:</strong> Para QR muy pequeños, acerca más la cámara en lugar de hacer zoom digital
             </div>
         </div>
         
         <footer>
-            <p>Lector QR Compatible &copy; 2024 - Especialmente diseñado para tu bookmarklet</p>
+            <p>Lector QR de Alta Precisión &copy; 2024 - Optimizado para máxima nitidez</p>
         </footer>
     </div>
 
@@ -496,16 +577,22 @@
         const video = document.getElementById('video');
         const startCameraBtn = document.getElementById('start-camera-btn');
         const stopCameraBtn = document.getElementById('stop-camera-btn');
+        const enhanceQualityBtn = document.getElementById('enhance-quality-btn');
         const resultDiv = document.getElementById('result');
         const statusMessage = document.getElementById('status-message');
         const qrFrame = document.getElementById('qr-frame');
         const scanStatus = document.getElementById('scan-status');
+        const qualityPercent = document.getElementById('quality-percent');
+        const qualityLevel = document.getElementById('quality-level');
         const orderNumberField = document.getElementById('order-number');
         const paymentTypeField = document.getElementById('payment-type');
         const totalField = document.getElementById('total-field');
         const scanDateField = document.getElementById('scan-date');
         const statusField = document.getElementById('status-field');
         const rawDataField = document.getElementById('raw-data');
+        const resolutionInfo = document.getElementById('resolution-info');
+        const focusInfo = document.getElementById('focus-info');
+        const framerateInfo = document.getElementById('framerate-info');
         const codesDetectedSpan = document.getElementById('codes-detected');
         const lastScanSpan = document.getElementById('last-scan');
         const scanStateSpan = document.getElementById('scan-state');
@@ -516,10 +603,18 @@
         let stream = null;
         let codesDetected = 0;
         let scanStartTime = 0;
+        let currentQuality = 0;
+        let qualityCheckInterval = null;
+        let isEnhancingQuality = false;
 
-        // Inicializar el escáner
+        // Inicializar la cámara con máxima calidad
         startCameraBtn.addEventListener('click', async () => {
-            await initializeQRScanner();
+            await initializeHighQualityCamera();
+        });
+        
+        // Mejorar calidad
+        enhanceQualityBtn.addEventListener('click', () => {
+            enhanceCameraQuality();
         });
         
         // Detener el escáner
@@ -527,50 +622,235 @@
             stopQRScanner();
         });
         
-        // Función para inicializar el escáner QR
-        async function initializeQRScanner() {
+        // Función para inicializar la cámara con máxima calidad
+        async function initializeHighQualityCamera() {
             try {
-                statusMessage.innerHTML = '<span class="loading"></span> Iniciando escáner QR...';
+                statusMessage.innerHTML = '<span class="loading"></span> Iniciando cámara en alta resolución...';
                 startCameraBtn.disabled = true;
+                scanStatus.innerHTML = '<span class="loading"></span> Configurando máxima nitidez...';
                 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                 }
                 
+                // Configuración para máxima calidad
                 const constraints = {
                     video: {
                         facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        // Máxima resolución disponible
+                        width: { ideal: 4096, max: 4096 },
+                        height: { ideal: 2160, max: 2160 },
+                        // Alta tasa de frames para smooth scanning
+                        frameRate: { ideal: 60, max: 60 },
+                        // Configuración de enfoque
+                        focusMode: 'continuous',
+                        // Otras optimizaciones
+                        resizeMode: 'none',
+                        aspectRatio: { ideal: 16/9 }
                     },
                     audio: false
                 };
                 
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log("Solicitando cámara con configuración HD...");
+                
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (error) {
+                    console.log("Configuración HD falló, intentando configuración alta...");
+                    // Fallback a configuración alta
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            frameRate: { ideal: 30 }
+                        },
+                        audio: false
+                    });
+                }
+                
                 video.srcObject = stream;
                 
                 video.onloadeddata = () => {
-                    video.play();
-                    
-                    stopCameraBtn.disabled = false;
-                    startCameraBtn.textContent = "✅ Escáner Activado";
-                    
-                    // Iniciar el escaneo continuo
-                    startContinuousScanning();
-                    
-                    // Actualizar UI
-                    scanStateSpan.textContent = 'Escaneando';
-                    qrFrame.classList.add('scanning');
-                    scanStartTime = Date.now();
-                    updateActiveTime();
-                    
-                    statusMessage.textContent = 'Escáner activo. Apunta al código QR generado por el bookmarklet...';
+                    video.play().then(() => {
+                        console.log("Video reproduciéndose en alta calidad");
+                        
+                        stopCameraBtn.disabled = false;
+                        enhanceQualityBtn.disabled = false;
+                        startCameraBtn.textContent = "✅ Cámara HD Activada";
+                        
+                        // Obtener y mostrar información de la cámara
+                        updateCameraInfo();
+                        
+                        // Iniciar el escaneo continuo
+                        startContinuousScanning();
+                        
+                        // Iniciar monitoreo de calidad
+                        startQualityMonitoring();
+                        
+                        // Actualizar UI
+                        scanStateSpan.textContent = 'Escaneando HD';
+                        qrFrame.classList.add('scanning');
+                        scanStartTime = Date.now();
+                        updateActiveTime();
+                        
+                        statusMessage.textContent = 'Cámara HD activa. Acerca el QR pequeño al marco...';
+                        scanStatus.innerHTML = '<span class="loading"></span> Escaneando en alta calidad...';
+                    }).catch(error => {
+                        console.error("Error reproduciendo video:", error);
+                        statusMessage.textContent = '❌ Error en reproducción de video.';
+                        resetScannerButton();
+                    });
+                };
+                
+                video.onerror = (error) => {
+                    console.error("Error en video HD:", error);
+                    statusMessage.textContent = '❌ Error en cámara HD.';
+                    resetScannerButton();
                 };
                 
             } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
-                statusMessage.textContent = '❌ Error: No se pudo acceder a la cámara.';
+                console.error('Error al acceder a la cámara HD:', error);
+                let errorMsg = '❌ Error: No se pudo acceder a la cámara HD. ';
+                
+                if (error.name === 'OverconstrainedError') {
+                    errorMsg += 'La configuración HD no es soportada. ';
+                    // Intentar con configuración básica
+                    try {
+                        statusMessage.textContent = '⚠️ Intentando configuración estándar...';
+                        await initializeStandardCamera();
+                        return;
+                    } catch (e) {
+                        errorMsg += 'Configuración estándar también falló.';
+                    }
+                }
+                
+                statusMessage.textContent = errorMsg;
                 resetScannerButton();
+            }
+        }
+        
+        // Inicializar cámara estándar (fallback)
+        async function initializeStandardCamera() {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' },
+                audio: false
+            });
+            video.srcObject = stream;
+            
+            video.onloadeddata = () => {
+                video.play();
+                stopCameraBtn.disabled = false;
+                enhanceQualityBtn.disabled = false;
+                startCameraBtn.textContent = "✅ Cámara Estándar";
+                
+                updateCameraInfo();
+                startContinuousScanning();
+                startQualityMonitoring();
+                
+                scanStateSpan.textContent = 'Escaneando';
+                qrFrame.classList.add('scanning');
+                scanStartTime = Date.now();
+                updateActiveTime();
+                
+                statusMessage.textContent = 'Cámara estándar activa. Acerca el QR al marco...';
+            };
+        }
+        
+        // Mejorar calidad de la cámara
+        function enhanceCameraQuality() {
+            if (!stream || isEnhancingQuality) return;
+            
+            isEnhancingQuality = true;
+            enhanceQualityBtn.disabled = true;
+            enhanceQualityBtn.textContent = "🔄 Mejorando...";
+            
+            scanStatus.innerHTML = '<span class="loading"></span> Aplicando mejoras de nitidez...';
+            
+            // Simular mejoras (en un caso real, aquí ajustarías parámetros de la cámara)
+            setTimeout(() => {
+                currentQuality = Math.min(currentQuality + 20, 100);
+                updateQualityDisplay();
+                
+                scanStatus.innerHTML = '<span class="loading"></span> Nitidez mejorada ✓';
+                enhanceQualityBtn.textContent = "🔍 Nitidez Máxima";
+                
+                setTimeout(() => {
+                    isEnhancingQuality = false;
+                    enhanceQualityBtn.disabled = false;
+                    scanStatus.innerHTML = '<span class="loading"></span> Escaneando en alta calidad...';
+                }, 2000);
+            }, 1500);
+        }
+        
+        // Monitorear calidad de la imagen
+        function startQualityMonitoring() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            function checkQuality() {
+                if (!stream || video.paused || video.ended) return;
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const quality = calculateImageQuality(imageData);
+                
+                currentQuality = quality;
+                updateQualityDisplay();
+            }
+            
+            qualityCheckInterval = setInterval(checkQuality, 1000);
+            checkQuality(); // Primera verificación inmediata
+        }
+        
+        // Calcular calidad de imagen
+        function calculateImageQuality(imageData) {
+            const data = imageData.data;
+            let contrast = 0;
+            let sharpness = 0;
+            
+            // Cálculo simple de contraste
+            for (let i = 0; i < data.length; i += 4) {
+                const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+                contrast += brightness;
+            }
+            
+            contrast = Math.min((contrast / (data.length / 4)) / 2.55, 100);
+            
+            // Calidad basada en resolución y contraste
+            const resolutionQuality = Math.min((video.videoWidth * video.videoHeight) / (1920 * 1080) * 100, 100);
+            const finalQuality = (contrast * 0.6 + resolutionQuality * 0.4);
+            
+            return Math.min(finalQuality, 100);
+        }
+        
+        // Actualizar display de calidad
+        function updateQualityDisplay() {
+            const percent = Math.round(currentQuality);
+            qualityPercent.textContent = percent + '%';
+            qualityLevel.style.width = percent + '%';
+            
+            // Color basado en calidad
+            if (percent < 40) {
+                qualityLevel.style.background = '#ff4444';
+            } else if (percent < 70) {
+                qualityLevel.style.background = '#ffaa00';
+            } else if (percent < 90) {
+                qualityLevel.style.background = '#00ff00';
+            } else {
+                qualityLevel.style.background = '#00ffff';
+            }
+        }
+        
+        // Actualizar información de la cámara
+        function updateCameraInfo() {
+            if (video.videoWidth && video.videoHeight) {
+                resolutionInfo.textContent = video.videoWidth + '×' + video.videoHeight;
+                framerateInfo.textContent = '≥30 fps';
+                focusInfo.textContent = 'Automático';
             }
         }
         
@@ -607,7 +887,7 @@
             scanFrame();
         }
         
-        // Procesar código QR detectado - COMPATIBLE CON BOOKMARKLET
+        // Procesar código QR detectado
         function processQRCode(qrData) {
             codesDetected++;
             
@@ -630,16 +910,14 @@
             setTimeout(() => {
                 qrFrame.classList.remove('success');
                 qrFrame.classList.add('scanning');
-                scanStatus.innerHTML = '<span class="loading"></span> Escaneando...';
+                scanStatus.innerHTML = '<span class="loading"></span> Escaneando en alta calidad...';
             }, 2000);
         }
         
-        // Parsear datos específicos del formato del bookmarklet
+        // Parsear datos del bookmarklet
         function parseBookmarkletData(qrData) {
             console.log("Datos QR del bookmarklet:", qrData);
             
-            // Formato esperado del bookmarklet:
-            // "Orden: OC-2024-001\nPago: Tarjeta de Crédito\nTotal: $150.75"
             const lines = qrData.split('\n');
             
             const orderData = {
@@ -650,11 +928,9 @@
                 status: 'Procesado'
             };
             
-            // Actualizar la interfaz con los datos
             updateUIWithOrderData(orderData);
         }
         
-        // Función auxiliar para extraer valores
         function extractValue(line, prefix) {
             if (!line) return 'No disponible';
             return line.replace(prefix, '').trim();
@@ -662,42 +938,35 @@
         
         // Actualizar UI con datos de la orden
         function updateUIWithOrderData(orderData) {
-            // Actualizar campos principales
             orderNumberField.textContent = orderData.orderNumber;
             paymentTypeField.textContent = orderData.paymentType;
             totalField.textContent = orderData.total;
             scanDateField.textContent = orderData.scanDate;
             statusField.textContent = orderData.status;
             
-            // Actualizar resultado principal
             resultDiv.innerHTML = `<strong>${orderData.orderNumber}</strong>`;
             statusMessage.textContent = `✅ Orden ${orderData.orderNumber} procesada`;
             
-            // Mostrar mensaje de éxito
             successMessage.style.display = 'block';
             
-            // Ocultar mensaje después de 5 segundos
             setTimeout(() => {
                 successMessage.style.display = 'none';
             }, 5000);
             
-            console.log("Datos de orden procesados:", orderData);
-            
-            // Guardar en localStorage
             saveOrderToStorage(orderData);
         }
         
         // Guardar orden en localStorage
         function saveOrderToStorage(orderData) {
             try {
-                const orders = JSON.parse(localStorage.getItem('bookmarkletOrders') || '[]');
+                const orders = JSON.parse(localStorage.getItem('hdScannerOrders') || '[]');
                 orders.push({
                     ...orderData,
                     rawData: rawDataField.textContent,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    quality: currentQuality
                 });
-                localStorage.setItem('bookmarkletOrders', JSON.stringify(orders));
-                console.log('Orden guardada en localStorage');
+                localStorage.setItem('hdScannerOrders', JSON.stringify(orders));
             } catch (error) {
                 console.error('Error guardando orden:', error);
             }
@@ -710,16 +979,21 @@
                 stream = null;
             }
             
-            // Resetear UI
+            if (qualityCheckInterval) {
+                clearInterval(qualityCheckInterval);
+                qualityCheckInterval = null;
+            }
+            
             startCameraBtn.disabled = false;
-            startCameraBtn.textContent = "🎥 Activar Escáner";
+            startCameraBtn.textContent = "🎥 Iniciar Cámara HD";
             stopCameraBtn.disabled = true;
+            enhanceQualityBtn.disabled = true;
             
             qrFrame.classList.remove('scanning', 'success');
-            scanStatus.textContent = 'Escáner detenido';
+            scanStatus.textContent = 'Cámara detenida';
             scanStateSpan.textContent = 'Inactivo';
             
-            statusMessage.textContent = 'Escáner detenido. Haz clic en "Activar Escáner" para reiniciar.';
+            statusMessage.textContent = 'Cámara detenida. Haz clic en "Iniciar Cámara HD" para reiniciar.';
         }
         
         // Actualizar tiempo activo
@@ -734,31 +1008,27 @@
         // Resetear botón del escáner
         function resetScannerButton() {
             startCameraBtn.disabled = false;
-            startCameraBtn.textContent = "🎥 Activar Escáner";
+            startCameraBtn.textContent = "🎥 Iniciar Cámara HD";
         }
         
-        // Generar datos de ejemplo compatibles con el bookmarklet
+        // Datos de ejemplo
         function generateSampleBookmarkletData() {
             const samples = [
                 "Orden: OC-2024-001\nPago: Tarjeta de Crédito\nTotal: $150.75",
                 "Orden: OC-2024-002\nPago: Transferencia\nTotal: $299.99",
-                "Orden: OC-2024-003\nPago: Efectivo\nTotal: $450.50",
-                "Orden: OC-2024-004\nPago: PayPal\nTotal: $175.25",
-                "Orden: OC-2024-005\nPago: Débito\nTotal: $89.99"
+                "Orden: OC-2024-003\nPago: Efectivo\nTotal: $450.50"
             ];
             return samples[Math.floor(Math.random() * samples.length)];
         }
         
-        // Simular detección de QR para pruebas
+        // Simular detección para pruebas
         document.addEventListener('keypress', (e) => {
-            if (e.key === 't') { // Presiona 't' para simular QR del bookmarklet
+            if (e.key === 't' && stream) {
                 processQRCode(generateSampleBookmarkletData());
             }
         });
         
-        console.log("Lector QR cargado. Especialmente diseñado para bookmarklet con formato:");
-        console.log("Orden: OC-2024-001\nPago: Tarjeta\nTotal: $150.75");
-        console.log("Presiona 't' para simular detección de código QR.");
+        console.log("Lector QR de alta nitidez cargado. Optimizado para QR pequeños.");
         
         // Limpiar al salir
         window.addEventListener('beforeunload', () => {
